@@ -4,7 +4,13 @@ import { toPlayerTrack } from "@/features/catalog/catalog-types";
 import { SongRow } from "@/features/catalog/components/song-row";
 import { getArtistDetail } from "@/features/catalog/services/catalog-server";
 import { usePlayer } from "@/features/player/player-context";
+import { getAbsoluteAppUrl } from "@/lib/config/app-url";
 import { formatNumber } from "@/lib/format";
+import {
+	createSocialMeta,
+	getDefaultSocialImageUrl,
+	serializeStructuredData,
+} from "@/lib/seo/social-meta";
 
 export const Route = createFileRoute("/artists/$artistSlug")({
 	loader: async ({ params }) => {
@@ -12,17 +18,39 @@ export const Route = createFileRoute("/artists/$artistSlug")({
 		if (!detail) throw notFound();
 		return detail;
 	},
-	head: ({ loaderData }) => ({
-		meta: [
-			{ title: `${loaderData?.artist.name ?? "Nghệ sĩ"} — Âm Sắc` },
-			{
-				name: "description",
-				content:
-					loaderData?.artist.biography ??
-					"Khám phá âm nhạc và album của nghệ sĩ.",
-			},
-		],
-	}),
+	head: ({ loaderData, params }) => {
+		const artistName = loaderData?.artist.name ?? "Nghệ sĩ";
+		const title = `${artistName} — Âm Sắc`;
+		const description =
+			loaderData?.artist.biography ??
+			`Khám phá bài hát và album của ${artistName} trên Âm Sắc.`;
+		const url = getAbsoluteAppUrl(`/artists/${params.artistSlug}`);
+		const imageUrl = loaderData?.artist.imageUrl || getDefaultSocialImageUrl();
+		return {
+			meta: createSocialMeta({
+				title,
+				description,
+				url,
+				imageUrl: loaderData?.artist.imageUrl,
+				imageAlt: `Ảnh nghệ sĩ ${artistName}`,
+				robots: "index,follow",
+			}),
+			links: [{ rel: "canonical", href: url }],
+			scripts: [
+				{
+					type: "application/ld+json",
+					children: serializeStructuredData({
+						"@context": "https://schema.org",
+						"@type": "MusicGroup",
+						name: artistName,
+						description,
+						url,
+						image: imageUrl,
+					}),
+				},
+			],
+		};
+	},
 	component: ArtistPage,
 });
 

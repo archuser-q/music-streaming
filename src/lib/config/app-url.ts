@@ -5,6 +5,13 @@ export function getAppUrl() {
 	);
 }
 
+export function getAbsoluteAppUrl(pathname = "/") {
+	if (/^https?:\/\//i.test(pathname)) return pathname;
+
+	const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
+	return `${getAppUrl()}${normalizedPath}`;
+}
+
 export function getPlaylistShareUrl(shareToken: string) {
-	return `${getAppUrl()}/share/playlists/${shareToken}`;
+	return getAbsoluteAppUrl(`/share/playlists/${shareToken}`);
 }

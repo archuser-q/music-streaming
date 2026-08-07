@@ -5,6 +5,11 @@ import { getSharedPlaylist } from "@/features/catalog/services/catalog-server";
 import { usePlayer } from "@/features/player/player-context";
 import { getPlaylistShareUrl } from "@/lib/config/app-url";
 import { formatDuration } from "@/lib/format";
+import {
+	createSocialMeta,
+	getDefaultSocialImageUrl,
+	serializeStructuredData,
+} from "@/lib/seo/social-meta";
 import { createClient } from "@/lib/supabase/client";
 
 export const Route = createFileRoute("/share/playlists/$shareToken")({
@@ -16,31 +21,45 @@ export const Route = createFileRoute("/share/playlists/$shareToken")({
 		return playlist;
 	},
 	head: ({ loaderData, params }) => {
-		const title = `${loaderData?.title ?? "Playlist"} — Âm Sắc`;
+		const playlistTitle = loaderData?.title ?? "Playlist";
+		const title = `${playlistTitle} — Âm Sắc`;
+		const ownerName =
+			loaderData?.owner.displayName ??
+			loaderData?.owner.username ??
+			"người dùng";
 		const description =
-			loaderData?.description ||
-			`Nghe playlist của ${loaderData?.owner.displayName ?? loaderData?.owner.username ?? "người dùng"} trên Âm Sắc.`;
+			loaderData?.description || `Nghe playlist của ${ownerName} trên Âm Sắc.`;
 		const url = getPlaylistShareUrl(params.shareToken);
+		const imageUrl = loaderData?.coverUrl || getDefaultSocialImageUrl();
 		return {
-			meta: [
-				{ title },
-				{ name: "description", content: description },
-				{ property: "og:title", content: title },
-				{ property: "og:description", content: description },
-				{ property: "og:type", content: "music.playlist" },
-				{ property: "og:url", content: url },
-				...(loaderData?.coverUrl
-					? [{ property: "og:image", content: loaderData.coverUrl }]
-					: []),
+			meta: createSocialMeta({
+				title,
+				description,
+				url,
+				imageUrl: loaderData?.coverUrl,
+				imageAlt: `Ảnh bìa playlist ${playlistTitle}`,
+				type: "music.playlist",
+				robots:
+					loaderData?.visibility === "public"
+						? "index,follow"
+						: "noindex,nofollow",
+			}),
+			links: [{ rel: "canonical", href: url }],
+			scripts: [
 				{
-					name: "robots",
-					content:
-						loaderData?.visibility === "public"
-							? "index,follow"
-							: "noindex,nofollow",
+					type: "application/ld+json",
+					children: serializeStructuredData({
+						"@context": "https://schema.org",
+						"@type": "MusicPlaylist",
+						name: playlistTitle,
+						description,
+						url,
+						image: imageUrl,
+						numTracks: loaderData?.songs.length ?? 0,
+						creator: { "@type": "Person", name: ownerName },
+					}),
 				},
 			],
-			links: [{ rel: "canonical", href: url }],
 		};
 	},
 	component: SharedPlaylistPage,
