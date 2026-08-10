@@ -6,13 +6,14 @@ import {
 	setCookie,
 	setResponseHeader,
 } from "@tanstack/react-start/server";
+import { env } from "cloudflare:workers";
 import type { Database } from "./database.types";
 
 export function createClient() {
-	const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+	const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
 	const publishableKey =
-		process.env.SUPABASE_PUBLISHABLE_KEY ??
-		process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+		env.SUPABASE_PUBLISHABLE_KEY ??
+		env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 	if (!url || !publishableKey) {
 		throw new Error("Thiếu cấu hình Supabase phía server");
