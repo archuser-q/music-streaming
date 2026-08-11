@@ -4,58 +4,13 @@ import { toPlayerTrack } from "@/features/catalog/catalog-types";
 import { SongRow } from "@/features/catalog/components/song-row";
 import { getAlbumDetail } from "@/features/catalog/services/catalog-server";
 import { usePlayer } from "@/features/player/player-context";
-import { getAbsoluteAppUrl } from "@/lib/config/app-url";
 import { formatDate } from "@/lib/format";
-import {
-	createSocialMeta,
-	getDefaultSocialImageUrl,
-	serializeStructuredData,
-} from "@/lib/seo/social-meta";
 
 export const Route = createFileRoute("/albums/$albumSlug")({
 	loader: async ({ params }) => {
 		const detail = await getAlbumDetail({ data: { slug: params.albumSlug } });
 		if (!detail) throw notFound();
 		return detail;
-	},
-	head: ({ loaderData, params }) => {
-		const albumTitle = loaderData?.album.title ?? "Album";
-		const artistName = loaderData?.artist?.name;
-		const title = `${albumTitle} — Âm Sắc`;
-		const description =
-			loaderData?.album.description ??
-			`Nghe album ${albumTitle}${artistName ? ` của ${artistName}` : ""} trên Âm Sắc.`;
-		const url = getAbsoluteAppUrl(`/albums/${params.albumSlug}`);
-		const imageUrl = loaderData?.album.coverUrl || getDefaultSocialImageUrl();
-		return {
-			meta: createSocialMeta({
-				title,
-				description,
-				url,
-				imageUrl: loaderData?.album.coverUrl,
-				imageAlt: `Ảnh bìa album ${albumTitle}`,
-				type: "music.album",
-				robots: "index,follow",
-			}),
-			links: [{ rel: "canonical", href: url }],
-			scripts: [
-				{
-					type: "application/ld+json",
-					children: serializeStructuredData({
-						"@context": "https://schema.org",
-						"@type": "MusicAlbum",
-						name: albumTitle,
-						description,
-						url,
-						image: imageUrl,
-						numTracks: loaderData?.songs.length ?? 0,
-						...(artistName
-							? { byArtist: { "@type": "MusicGroup", name: artistName } }
-							: {}),
-					}),
-				},
-			],
-		};
 	},
 	component: AlbumPage,
 });

@@ -17,8 +17,6 @@ import {
 	catalogSearchSchema,
 	emptyCatalogSearch,
 } from "@/features/search/search-params";
-import { getAbsoluteAppUrl } from "@/lib/config/app-url";
-import { createSocialMeta } from "@/lib/seo/social-meta";
 
 export const Route = createFileRoute("/")({
 	validateSearch: catalogSearchSchema,
@@ -30,19 +28,6 @@ export const Route = createFileRoute("/")({
 		album: search.album,
 	}),
 	loader: ({ deps }) => getCatalogPage({ data: deps }),
-	head: () => {
-		const url = getAbsoluteAppUrl("/");
-		return {
-			meta: createSocialMeta({
-				title: "Âm Sắc — Music Streaming",
-				description:
-					"Nghe nhạc, khám phá nghệ sĩ, album và tạo playlist của riêng bạn trên Âm Sắc.",
-				url,
-				imageAlt: "Âm Sắc — không gian âm nhạc trực tuyến",
-			}),
-			links: [{ rel: "canonical", href: url }],
-		};
-	},
 	component: HomePage,
 });
 
