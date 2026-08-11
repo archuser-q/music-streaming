@@ -1,5 +1,8 @@
 export function getAppUrl() {
-  return window.location.origin;
+	return (import.meta.env.VITE_APP_URL || "http://localhost:3000").replace(
+		/\/$/,
+		"",
+	);
 }
 
 export function getAbsoluteAppUrl(pathname = "/") {

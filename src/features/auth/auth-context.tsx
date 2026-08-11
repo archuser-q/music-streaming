@@ -6,10 +6,12 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getAuthSnapshot } from "./auth-server";
+import { updateBrowserAuthSnapshot } from "./auth-snapshot-cache";
 import type { AuthSnapshot, AuthState } from "./auth-types";
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -24,25 +26,42 @@ export function AuthProvider({
 	const router = useRouter();
 	const [snapshot, setSnapshot] = useState(initialAuth);
 	const [loading, setLoading] = useState(false);
+	const refreshPromise = useRef<Promise<void> | null>(null);
 
-	useEffect(() => setSnapshot(initialAuth), [initialAuth]);
+	useEffect(() => {
+		setSnapshot(initialAuth);
+		updateBrowserAuthSnapshot(initialAuth);
+	}, [initialAuth]);
 
-	const refresh = useCallback(async () => {
+	const refresh = useCallback(() => {
+		if (refreshPromise.current) return refreshPromise.current;
+
 		setLoading(true);
-		try {
-			const next = await getAuthSnapshot();
-			setSnapshot(next);
-			await router.invalidate();
-		} finally {
-			setLoading(false);
-		}
+		const request = (async () => {
+			try {
+				const next = await getAuthSnapshot();
+				if (!updateBrowserAuthSnapshot(next)) return;
+				setSnapshot(next);
+				await router.invalidate({ sync: true });
+			} finally {
+				setLoading(false);
+			}
+		})();
+
+		refreshPromise.current = request;
+		const clearRequest = () => {
+			if (refreshPromise.current === request) refreshPromise.current = null;
+		};
+		request.then(clearRequest, clearRequest);
+		return request;
 	}, [router]);
 
 	useEffect(() => {
 		const supabase = createClient();
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(() => {
+		} = supabase.auth.onAuthStateChange((event) => {
+			if (event === "INITIAL_SESSION") return;
 			window.setTimeout(() => void refresh(), 0);
 		});
 
@@ -53,12 +72,11 @@ export function AuthProvider({
 		setLoading(true);
 		try {
 			await createClient().auth.signOut();
-			setSnapshot({ user: null, profile: null });
-			await router.invalidate();
+			await refresh();
 		} finally {
 			setLoading(false);
 		}
-	}, [router]);
+	}, [refresh]);
 
 	const value = useMemo<AuthState>(
 		() => ({ ...snapshot, loading, refresh, signOut }),

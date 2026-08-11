@@ -9,7 +9,7 @@ import { CircleAlert, SearchX } from "lucide-react";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/features/auth/auth-context";
-import { getAuthSnapshot } from "@/features/auth/auth-server";
+import { resolveAuthSnapshot } from "@/features/auth/auth-snapshot-cache";
 import { LikedSongsProvider } from "@/features/liked-songs/liked-songs-context";
 import { PlayerBar } from "@/features/player/player-bar";
 import { PlayerProvider } from "@/features/player/player-context";
@@ -17,7 +17,7 @@ import { getErrorMessage } from "@/lib/format";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
-	beforeLoad: async () => ({ auth: await getAuthSnapshot() }),
+	beforeLoad: async () => ({ auth: await resolveAuthSnapshot() }),
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
