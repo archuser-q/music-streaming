@@ -2,6 +2,18 @@ import { FileMusic, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatLrc, type LrcLine, parseLrc } from "@/features/lyrics/lrc";
 
+function linesMatch(left: LrcLine[], right: LrcLine[]) {
+	return (
+		left.length === right.length &&
+		left.every(
+			(line, index) =>
+				line.startMs === right[index]?.startMs &&
+				line.endMs === right[index]?.endMs &&
+				line.text === right[index]?.text,
+		)
+	);
+}
+
 export function LrcEditor({
 	lines,
 	onChange,
@@ -9,8 +21,19 @@ export function LrcEditor({
 	lines: LrcLine[];
 	onChange: (lines: LrcLine[]) => void;
 }) {
-	const [source, setSource] = useState("");
-	useEffect(() => setSource(formatLrc(lines)), [lines]);
+	const [source, setSource] = useState(() => formatLrc(lines));
+	useEffect(() => {
+		setSource((currentSource) =>
+			linesMatch(parseLrc(currentSource), lines)
+				? currentSource
+				: formatLrc(lines),
+		);
+	}, [lines]);
+
+	const updateSource = (nextSource: string) => {
+		setSource(nextSource);
+		onChange(parseLrc(nextSource));
+	};
 
 	const updateLine = (index: number, next: Partial<LrcLine>) => {
 		onChange(
@@ -28,7 +51,7 @@ export function LrcEditor({
 					<textarea
 						rows={7}
 						value={source}
-						onChange={(event) => setSource(event.target.value)}
+						onChange={(event) => updateSource(event.target.value)}
 						placeholder="[00:12.50]Dòng lời đầu tiên"
 					/>
 				</label>
@@ -42,22 +65,13 @@ export function LrcEditor({
 							onChange={(event) => {
 								const file = event.target.files?.[0];
 								if (!file) return;
-								void file.text().then((text) => {
-									setSource(text);
-									onChange(parseLrc(text));
-								});
+								void file.text().then(updateSource);
 							}}
 						/>
 					</label>
-					<button
-						type="button"
-						className="button subtle"
-						onClick={() => onChange(parseLrc(source))}
-					>
-						Phân tích timestamp
-					</button>
 					<p className="muted">
-						Hỗ trợ [mm:ss], [mm:ss.xx] và nhiều timestamp trên một dòng.
+						Tự động cập nhật {lines.length} dòng hợp lệ. Metadata và dòng
+						timestamp trống sẽ không được lưu.
 					</p>
 				</div>
 			</div>
