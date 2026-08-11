@@ -36,7 +36,7 @@ export const Route = createFileRoute("/share/playlists/$shareToken")({
 				title,
 				description,
 				url,
-				imageUrl: loaderData?.coverUrl,
+				imageUrl,
 				imageAlt: `Ảnh bìa playlist ${playlistTitle}`,
 				type: "music.playlist",
 				robots:
