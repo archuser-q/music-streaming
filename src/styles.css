@@ -589,6 +589,16 @@ fieldset legend {
 	transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
+.song-card {
+	position: relative;
+}
+
+.song-card:hover,
+.song-card:focus-within,
+.song-card:has(.popover-menu) {
+	z-index: 1;
+}
+
 .song-card:hover,
 .playlist-card:hover,
 .album-card:hover {
